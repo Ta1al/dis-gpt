@@ -105,6 +105,7 @@ client.on(Events.MessageCreate, async message => {
     await msg.edit("⚠ Failed to get response.");
     return;
   }
+  threads.set(msg.channel.id, res);
   await msg.edit(res.text);
 });
 
