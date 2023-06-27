@@ -40,7 +40,7 @@ commands.set(prompt.data.name, prompt as MyCommand);
 client.once(Events.ClientReady, client => {
   console.log("Ready!");
   client.application.commands
-    .set([...commands.map(c => c.data), prompt.data], process.env.GUILD_ID!)
+    .set([...commands.map(c => c.data)], process.env.GUILD_ID!)
     .then(c => console.log(`Registered ${c.size} commands.`));
 });
 
