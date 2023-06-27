@@ -4,8 +4,7 @@ import { threads } from "../index.js";
 
 const api = new ChatGPTUnofficialProxyAPI({
   accessToken: process.env.OPENAI_ACCESS_TOKEN!,
-  apiReverseProxyUrl: "https://api.pawan.krd/backend-api/conversation",
-  debug: true
+  apiReverseProxyUrl: "https://api.pawan.krd/backend-api/conversation"
 });
 
 export { api };
