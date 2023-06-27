@@ -74,3 +74,4 @@ interface MyCommand {
   run: (interaction: CommandInteraction, commands?: Collection<string, MyCommand>) => Promise<void>;
 }
 
+export { client, commands, threads };
