@@ -11,19 +11,26 @@ import path, { dirname } from "path";
 import "dotenv/config";
 import { fileURLToPath } from "url";
 import Keyv from "keyv";
-import prompt from "./commands/prompt.js";
+import prompt, { api } from "./commands/prompt.js";
+import { ChatMessage } from "chatgpt";
 
 const threads = new Keyv(process.env.MONGO_URI!);
 threads.on("error", (err: any) => console.error("Keyv connection error:", err));
 
 const client = new Client({
-    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages]
+    intents: [
+      GatewayIntentBits.Guilds,
+      GatewayIntentBits.GuildMessages,
+      GatewayIntentBits.MessageContent
+    ]
   }),
   commands: Collection<string, MyCommand> = new Collection(),
   __filename = fileURLToPath(import.meta.url),
   __dirname = dirname(__filename),
   commandsPath = path.join(__dirname, "commands"),
-  commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith(".js") && !file.startsWith("prompt"));
+  commandFiles = fs
+    .readdirSync(commandsPath)
+    .filter(file => file.endsWith(".js") && !file.startsWith("prompt"));
 
 for (const file of commandFiles) {
   const filePath = path.join(commandsPath, file),
@@ -37,6 +44,7 @@ for (const file of commandFiles) {
   }
 }
 commands.set(prompt.data.name, prompt as MyCommand);
+
 client.once(Events.ClientReady, client => {
   console.log("Ready!");
   client.application.commands
@@ -67,6 +75,39 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 });
 
+client.on(Events.MessageCreate, async message => {
+  if (message.author.bot) return;
+  if (!message.channel.isThread() || message.channel.parentId !== process.env.CHANNEL_ID!) return;
+
+  const prevRes: ChatMessage | undefined = await threads.get(message.channelId);
+  if (!prevRes) return;
+
+  let partial: ChatMessage | undefined = undefined;
+
+  const msg = await message.channel.send("Thinking...");
+  const temp = setInterval(() => {
+    if (partial) {
+      msg.edit(partial.text).catch();
+      partial = undefined;
+    }
+  }, 1500);
+
+  const res = await api.sendMessage(message.content, {
+    onProgress: progress => {
+      partial = progress;
+    },
+    parentMessageId: prevRes.parentMessageId,
+    conversationId: prevRes.conversationId,
+    timeoutMs: 2 * 60 * 1000
+  });
+  clearInterval(temp);
+  if (!res || !res.text) {
+    await msg.edit("⚠ Failed to get response.");
+    return;
+  }
+  await msg.edit(res.text);
+});
+
 client.login(process.env.TOKEN);
 
 interface MyCommand {
@@ -75,3 +116,4 @@ interface MyCommand {
 }
 
 export { client, commands, threads };
+

@@ -1,17 +1,20 @@
 import { CommandInteraction, SlashCommandBuilder, TextChannel } from "discord.js";
 import { ChatGPTUnofficialProxyAPI, ChatMessage } from "chatgpt";
 import { threads } from "../index.js";
+
+const api = new ChatGPTUnofficialProxyAPI({
+  accessToken: process.env.OPENAI_ACCESS_TOKEN!,
+  apiReverseProxyUrl: "https://api.pawan.krd/backend-api/conversation",
+  debug: true
+});
+
+export { api };
 export default {
   data: new SlashCommandBuilder()
     .setName("prompt")
     .setDescription("Prompt chatgpt")
     .addStringOption(option => option.setName("prompt").setDescription("Prompt").setRequired(true)),
   run: async (interaction: CommandInteraction) => {
-    const api = new ChatGPTUnofficialProxyAPI({
-      accessToken: process.env.OPENAI_ACCESS_TOKEN!,
-      apiReverseProxyUrl: "https://api.pawan.krd/backend-api/conversation",
-      debug: true
-    });
     let partial: ChatMessage | undefined = undefined;
     if (
       !interaction.channel?.isTextBased() ||
@@ -37,6 +40,9 @@ export default {
           return undefined;
         });
     if (!thread) return;
+    await interaction.editReply({
+      content: `✅ Check out the thread: ${thread.toString()}`
+    });
     const txt =
         `${interaction.user.toString()}\n` +
         `Prompt: ${interaction.options.get("prompt")!.value as string}`,
@@ -64,10 +70,8 @@ export default {
       await msg.edit(txt + "\n\n**Response:** ⚠ Failed to get response.");
       return;
     }
-    threads.set(thread.id, res.parentMessageId);
-    await interaction.editReply({
-      content: `✅ Check out the thread: ${thread.toString()}`
-    });
+    threads.set(thread.id, res);
+
     await msg.edit(txt + "\n\n**Response:** " + res.text);
   }
 };
