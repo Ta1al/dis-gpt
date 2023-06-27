@@ -10,6 +10,12 @@ import fs from "fs";
 import path, { dirname } from "path";
 import "dotenv/config";
 import { fileURLToPath } from "url";
+import Keyv from "keyv";
+import prompt from "./commands/prompt.js";
+
+const threads = new Keyv(process.env.MONGO_URI!);
+threads.on("error", (err: any) => console.error("Keyv connection error:", err));
+
 const client = new Client({
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages]
   }),
