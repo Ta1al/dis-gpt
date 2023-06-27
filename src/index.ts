@@ -23,7 +23,7 @@ const client = new Client({
   __filename = fileURLToPath(import.meta.url),
   __dirname = dirname(__filename),
   commandsPath = path.join(__dirname, "commands"),
-  commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith(".js"));
+  commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith(".js") && !file.startsWith("prompt"));
 
 for (const file of commandFiles) {
   const filePath = path.join(commandsPath, file),
@@ -36,11 +36,11 @@ for (const file of commandFiles) {
     );
   }
 }
-
+commands.set(prompt.data.name, prompt as MyCommand);
 client.once(Events.ClientReady, client => {
   console.log("Ready!");
   client.application.commands
-    .set([...commands.map(c => c.data)], process.env.GUILD_ID!)
+    .set([...commands.map(c => c.data), prompt.data], process.env.GUILD_ID!)
     .then(c => console.log(`Registered ${c.size} commands.`));
 });
 
