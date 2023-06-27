@@ -7,19 +7,21 @@ import {
   SlashCommandBuilder
 } from "discord.js";
 import fs from "fs";
-import path from "path";
+import path, { dirname } from "path";
 import "dotenv/config";
-
+import { fileURLToPath } from "url";
 const client = new Client({
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages]
   }),
   commands: Collection<string, MyCommand> = new Collection(),
+  __filename = fileURLToPath(import.meta.url),
+  __dirname = dirname(__filename),
   commandsPath = path.join(__dirname, "commands"),
   commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith(".js"));
 
 for (const file of commandFiles) {
   const filePath = path.join(commandsPath, file),
-    command = require(filePath).default as MyCommand;
+    command = (await import(filePath)).default as MyCommand;
   if ("data" in command && "run" in command) {
     commands.set(command.data.name, command);
   } else {
