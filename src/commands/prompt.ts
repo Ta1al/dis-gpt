@@ -65,6 +65,9 @@ export default {
       return;
     }
     threads.set(thread.id, res.parentMessageId);
+    await interaction.editReply({
+      content: `✅ Check out the thread: ${thread.toString()}`
+    });
     await msg.edit(txt + "\n\n**Response:** " + res.text);
   }
 };
