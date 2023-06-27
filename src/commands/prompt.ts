@@ -1,5 +1,6 @@
 import { CommandInteraction, SlashCommandBuilder, TextChannel } from "discord.js";
 import { ChatGPTUnofficialProxyAPI, ChatMessage } from "chatgpt";
+import { threads } from "../index.js";
 export default {
   data: new SlashCommandBuilder()
     .setName("prompt")
@@ -59,6 +60,11 @@ export default {
         timeoutMs: 2 * 60 * 1000
       });
     clearInterval(temp);
+    if (!res || !res.text) {
+      await msg.edit(txt + "\n\n**Response:** ⚠ Failed to get response.");
+      return;
+    }
+    threads.set(thread.id, res.parentMessageId);
     await msg.edit(txt + "\n\n**Response:** " + res.text);
   }
 };
