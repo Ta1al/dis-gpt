@@ -7,7 +7,9 @@ import {
   TextChannel
 } from "discord.js";
 import { ChatGPTUnofficialProxyAPI, ChatMessage } from "chatgpt";
-import { threads, signal } from "../index.js";
+import { threads } from "../index.js";
+import EventEmitter from 'events';
+
 
 const api = new ChatGPTUnofficialProxyAPI({
   accessToken: process.env.OPENAI_ACCESS_TOKEN!,
@@ -42,7 +44,7 @@ export default {
           return undefined;
         });
     if (!thread) return;
-    threads.set(thread.id, { userId: interaction.user.id, res:undefined });
+    threads.set(thread.id, { userId: interaction.user.id, res: undefined });
     await interaction.editReply({
       content: `✅ Check out the thread: ${thread.toString()}`
     });
@@ -76,6 +78,13 @@ export default {
         });
     if (!msg) return;
 
+    const event = new EventEmitter();
+    const controller = new AbortController();
+    const signal = controller.signal;
+    event.once("abort", channelId => {
+      if (channelId !== thread.id) return;
+      controller.abort();
+    });
     const temp = setInterval(() => {
         if (partial) {
           msg

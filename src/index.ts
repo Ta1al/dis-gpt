@@ -15,12 +15,12 @@ import path, { dirname } from "path";
 import prompt, { api, msgContent } from "./commands/prompt.js";
 import fs from "fs";
 import Keyv from "keyv";
+import EventEmitter from "events";
+
+const event = new EventEmitter();
 
 const threads = new Keyv(process.env.MONGO_URI!);
 threads.on("error", (err: any) => console.error("Keyv connection error:", err));
-
-const controller = new AbortController();
-const signal = controller.signal;
 
 const client = new Client({
     intents: [
@@ -86,11 +86,11 @@ client.on(Events.InteractionCreate, async interaction => {
   } else if (interaction.isButton()) {
     if (interaction.customId === "abort") {
       if (interaction.user.id !== (await threads.get(interaction.channelId))?.userId) return;
-      controller.abort();
       await interaction.update({
         content: "Aborting...",
         components: []
       });
+      event.emit("abort", interaction.channelId);
     }
   } else return;
 });
@@ -101,7 +101,6 @@ client.on(Events.MessageCreate, async message => {
   if (!message.mentions.has(client.user!)) return;
   const { userId, res: prevRes } = await threads.get(message.channelId);
   if (!prevRes || message.author.id !== userId) return;
-  message.content = message.content.replace(client.user!.toString(), "").trim();
   let partial: ChatMessage | undefined = undefined;
 
   const msg = await message
@@ -130,9 +129,14 @@ client.on(Events.MessageCreate, async message => {
       partial = undefined;
     }
   }, 1500);
-
+  const controller = new AbortController();
+  const signal = controller.signal;
+  event.once("abort", channelId => {
+    if (channelId !== message.channelId) return;
+    controller.abort();
+  });
   const res = await api
-    .sendMessage(message.content, {
+    .sendMessage(message.content.replace(client.user!.toString(), "").trim(), {
       onProgress: progress => {
         partial = progress;
       },
@@ -163,5 +167,5 @@ interface MyCommand {
   ) => Promise<void>;
 }
 
-export { client, commands, threads, signal };
+export { client, commands, threads };
 
