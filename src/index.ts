@@ -27,7 +27,13 @@ const client = new Client({
       GatewayIntentBits.Guilds,
       GatewayIntentBits.GuildMessages,
       GatewayIntentBits.MessageContent
-    ]
+    ],
+    allowedMentions: {
+      parse: [],
+      users: [],
+      roles: [],
+      repliedUser: true
+    }
   }),
   commands: Collection<string, MyCommand> = new Collection(),
   __filename = fileURLToPath(import.meta.url),
