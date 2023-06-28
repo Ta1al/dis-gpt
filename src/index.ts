@@ -11,7 +11,7 @@ import path, { dirname } from "path";
 import "dotenv/config";
 import { fileURLToPath } from "url";
 import Keyv from "keyv";
-import prompt, { api } from "./commands/prompt.js";
+import prompt, { api, msgContent } from "./commands/prompt.js";
 import { ChatMessage } from "chatgpt";
 
 const threads = new Keyv(process.env.MONGO_URI!);
@@ -78,42 +78,51 @@ client.on(Events.InteractionCreate, async interaction => {
 client.on(Events.MessageCreate, async message => {
   if (message.author.bot) return;
   if (!message.channel.isThread() || message.channel.parentId !== process.env.CHANNEL_ID!) return;
-
-  const prevRes: ChatMessage | undefined = await threads.get(message.channelId);
-  if (!prevRes) return;
+  if (!message.mentions.has(client.user!)) return;
+  const { userId, res: prevRes } = await threads.get(message.channelId);
+  if (!prevRes || message.author.id !== userId) return;
 
   let partial: ChatMessage | undefined = undefined;
 
-  const msg = await message.channel.send("Thinking <a:loading:781902642267029574>");
+  const msg = await message.reply("<a:loading:781902642267029574>").catch();
+  if (!msg) return;
+
   const temp = setInterval(() => {
     if (partial) {
-      msg.edit(partial.text).catch();
+      msg.edit(msgContent(partial.text + " <a:loading:781902642267029574>")).catch();
       partial = undefined;
     }
   }, 1500);
 
-  const res = await api.sendMessage(message.content, {
-    onProgress: progress => {
-      partial = progress;
-    },
-    parentMessageId: prevRes.parentMessageId,
-    conversationId: prevRes.conversationId,
-    timeoutMs: 2 * 60 * 1000
-  });
+  const res = await api
+    .sendMessage(message.content, {
+      onProgress: progress => {
+        partial = progress;
+      },
+      parentMessageId: prevRes.parentMessageId,
+      conversationId: prevRes.conversationId,
+      timeoutMs: 5 * 60 * 1000
+    })
+    .catch(e => {
+      console.error(e);
+      msg.edit("💔 Failed to get response.\n" + e.message).catch();
+      return undefined;
+    });
   clearInterval(temp);
-  if (!res || !res.text) {
-    await msg.edit("⚠ Failed to get response.");
-    return;
-  }
-  threads.set(msg.channel.id, res);
-  await msg.edit(res.text);
+
+  if (!res || !res.text) return;
+  threads.set(msg.channel.id, { userId: message.author.id, res });
+  await msg.edit(msgContent(res.text)).catch();
 });
 
 client.login(process.env.TOKEN);
 
 interface MyCommand {
   data: SlashCommandBuilder;
-  run: (interaction: CommandInteraction, commands?: Collection<string, MyCommand>) => Promise<void>;
+  run: (
+    interaction: CommandInteraction,
+    threads?: Keyv<any, Record<string, unknown>>
+  ) => Promise<void>;
 }
 
 export { client, commands, threads };

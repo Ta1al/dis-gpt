@@ -1,4 +1,9 @@
-import { CommandInteraction, SlashCommandBuilder, TextChannel } from "discord.js";
+import {
+  CommandInteraction,
+  MessageEditOptions,
+  SlashCommandBuilder,
+  TextChannel
+} from "discord.js";
 import { ChatGPTUnofficialProxyAPI, ChatMessage } from "chatgpt";
 import { threads } from "../index.js";
 
@@ -7,7 +12,6 @@ const api = new ChatGPTUnofficialProxyAPI({
   apiReverseProxyUrl: "https://api.pawan.krd/backend-api/conversation"
 });
 
-export { api };
 export default {
   data: new SlashCommandBuilder()
     .setName("prompt")
@@ -15,13 +19,10 @@ export default {
     .addStringOption(option => option.setName("prompt").setDescription("Prompt").setRequired(true)),
   run: async (interaction: CommandInteraction) => {
     let partial: ChatMessage | undefined = undefined;
-    if (
-      !interaction.channel?.isTextBased() ||
-      interaction.channel?.isDMBased() ||
-      interaction.channel?.isThread()
-    ) {
+    const channelId = process.env.CHANNEL_ID!;
+    if (interaction.channel?.id !== channelId) {
       return interaction.reply({
-        content: "⚠ This command can only be used in a guild text channel.",
+        content: `⛔ This command can only be used in <#${channelId}>.`,
         ephemeral: true
       });
     }
@@ -30,11 +31,11 @@ export default {
     const channel = interaction.channel as TextChannel,
       thread = await channel.threads
         .create({
-          name: interaction.user.username
+          name: interaction.user.id
         })
         .catch(() => {
           interaction.editReply({
-            content: "⚠ Failed to create thread."
+            content: "❌ Failed to create thread."
           });
           return undefined;
         });
@@ -49,31 +50,72 @@ export default {
         .send(txt + `**Response:** Thinking <a:loading:781902642267029574>`)
         .catch(() => {
           interaction.editReply({
-            content: "⚠ Failed to send message in thread."
+            content: "❌ Failed to send message in thread."
           });
+          thread.delete().catch();
           return undefined;
         });
     if (!msg) return;
+
     const temp = setInterval(() => {
         if (partial) {
-          msg.edit(txt + "**Response:** " + partial.text).catch();
+          msg
+            .edit(
+              msgContent(txt + "**Response:** " + partial.text + " <a:loading:781902642267029574>")
+            )
+            .catch();
           partial = undefined;
         }
       }, 1500),
-      res = await api.sendMessage(interaction.options.get("prompt")!.value as string, {
-        onProgress: progress => {
-          partial = progress;
-        },
-        timeoutMs: 2 * 60 * 1000
-      });
+      res = await api
+        .sendMessage(interaction.options.get("prompt")!.value as string, {
+          onProgress: progress => {
+            partial = progress;
+          },
+          timeoutMs: 5 * 60 * 1000
+        })
+        .catch(e => {
+          console.error(e);
+          thread.delete().catch();
+          interaction.editReply({
+            content: "💔 Failed to get response.\n" + e.message
+          });
+          return undefined;
+        });
     clearInterval(temp);
-    if (!res || !res.text) {
-      await msg.edit(txt + "\n\n**Response:** ⚠ Failed to get response.");
-      return;
-    }
-    threads.set(thread.id, res);
 
-    await msg.edit(txt + "\n\n**Response:** " + res.text);
+    if (!res || !res.text) return;
+    threads.set(thread.id, { userId: interaction.user.id, res });
+
+    await msg.edit(msgContent(txt + "\n\n**Response:** " + res.text)).catch();
   }
 };
+
+function msgContent(txt: string): string | MessageEditOptions {
+  if (txt.length < 2000) return txt;
+  if (txt.length < 4000)
+    return {
+      content: "",
+      embeds: [
+        {
+          description: txt,
+          color: 0x2b2d31
+        }
+      ]
+    };
+  else {
+    return {
+      content: "",
+      embeds: [],
+      files: [
+        {
+          name: "response.txt",
+          attachment: Buffer.from(txt)
+        }
+      ]
+    };
+  }
+}
+
+export { api, msgContent };
 
