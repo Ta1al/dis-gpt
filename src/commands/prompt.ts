@@ -42,6 +42,7 @@ export default {
           return undefined;
         });
     if (!thread) return;
+    threads.set(thread.id, { userId: interaction.user.id, res:undefined });
     await interaction.editReply({
       content: `✅ Check out the thread: ${thread.toString()}`
     });
@@ -69,6 +70,7 @@ export default {
           interaction.editReply({
             content: "❌ Failed to send message in thread."
           });
+          threads.delete(thread.id);
           thread.delete().catch();
           return undefined;
         });
@@ -94,6 +96,7 @@ export default {
         })
         .catch(e => {
           console.error(e);
+          threads.delete(thread.id);
           thread.delete().catch();
           interaction.editReply({
             content: "💔 Failed to get response.\n" + e.message,
