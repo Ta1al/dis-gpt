@@ -1,3 +1,4 @@
+import "dotenv/config";
 import {
   Client,
   Events,
@@ -12,7 +13,6 @@ import path, { dirname } from "path";
 import prompt, { api, msgContent } from "./commands/prompt.js";
 import fs from "fs";
 import Keyv from "keyv";
-import "dotenv/config";
 
 const threads = new Keyv(process.env.MONGO_URI!);
 threads.on("error", (err: any) => console.error("Keyv connection error:", err));
