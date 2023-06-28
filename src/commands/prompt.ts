@@ -82,8 +82,7 @@ export default {
     const event = new EventEmitter();
     const controller = new AbortController();
     const signal = controller.signal;
-    event.once("abort", channelId => {
-      if (channelId !== thread.id) return;
+    event.once(`abort-${thread.id}`, () => {
       controller.abort();
     });
     const temp = setInterval(() => {

@@ -90,7 +90,7 @@ client.on(Events.InteractionCreate, async interaction => {
         content: "Aborting...",
         components: []
       });
-      event.emit("abort", interaction.channelId);
+      event.emit(`abort-${interaction.channel?.id}`);
     }
   } else return;
 });
@@ -131,8 +131,7 @@ client.on(Events.MessageCreate, async message => {
   }, 1500);
   const controller = new AbortController();
   const signal = controller.signal;
-  event.once("abort", channelId => {
-    if (channelId !== message.channelId) return;
+  event.once(`abort-${msg.channel.id}`, () => {
     controller.abort();
   });
   const res = await api
