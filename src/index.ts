@@ -81,7 +81,7 @@ client.on(Events.MessageCreate, async message => {
   if (!message.mentions.has(client.user!)) return;
   const { userId, res: prevRes } = await threads.get(message.channelId);
   if (!prevRes || message.author.id !== userId) return;
-
+  message.content = message.content.replace(client.user!.toString(), "").trim();
   let partial: ChatMessage | undefined = undefined;
 
   const msg = await message.reply("<a:loading:781902642267029574>").catch();
