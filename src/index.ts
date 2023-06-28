@@ -6,13 +6,13 @@ import {
   CommandInteraction,
   SlashCommandBuilder
 } from "discord.js";
-import fs from "fs";
-import path, { dirname } from "path";
-import "dotenv/config";
 import { fileURLToPath } from "url";
-import Keyv from "keyv";
-import prompt, { api, msgContent } from "./commands/prompt.js";
 import { ChatMessage } from "chatgpt";
+import path, { dirname } from "path";
+import prompt, { api, msgContent } from "./commands/prompt.js";
+import fs from "fs";
+import Keyv from "keyv";
+import "dotenv/config";
 
 const threads = new Keyv(process.env.MONGO_URI!);
 threads.on("error", (err: any) => console.error("Keyv connection error:", err));
