@@ -63,7 +63,7 @@ client.on(Events.InteractionCreate, async interaction => {
   }
 
   try {
-    await command.run(interaction);
+    await command.run(interaction, threads);
   } catch (error) {
     console.error(error);
     const errorMsg = {
