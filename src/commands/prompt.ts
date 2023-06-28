@@ -7,8 +7,7 @@ import {
   TextChannel
 } from "discord.js";
 import { ChatGPTUnofficialProxyAPI, ChatMessage } from "chatgpt";
-import { threads } from "../index.js";
-import EventEmitter from 'events';
+import { threads, event } from "../index.js";
 
 
 const api = new ChatGPTUnofficialProxyAPI({
@@ -79,7 +78,6 @@ export default {
         });
     if (!msg) return;
 
-    const event = new EventEmitter();
     const controller = new AbortController();
     const signal = controller.signal;
     event.once(`abort-${thread.id}`, () => {
@@ -108,7 +106,7 @@ export default {
           threads.delete(thread.id);
           thread.delete().catch();
           interaction.editReply({
-            content: "💔 Failed to get response.\n" + e.message,
+            content: "💔 Failed to get response.\n" + e.message.slice(0, 1000),
             components: []
           });
           return undefined;

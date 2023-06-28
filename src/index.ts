@@ -166,5 +166,5 @@ interface MyCommand {
   ) => Promise<void>;
 }
 
-export { client, commands, threads };
+export { client, commands, threads, event };
 
