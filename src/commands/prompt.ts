@@ -44,6 +44,7 @@ export default {
           return undefined;
         });
     if (!thread) return;
+    thread.members.add(interaction.user.id).catch();
     threads.set(thread.id, { userId: interaction.user.id, res: undefined });
     await interaction.editReply({
       content: `✅ Check out the thread: ${thread.toString()}`
