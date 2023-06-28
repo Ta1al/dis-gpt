@@ -44,17 +44,19 @@ export default {
     });
     const txt =
         `${interaction.user.toString()}\n` +
-        `Prompt: ${interaction.options.get("prompt")!.value as string}`,
-      msg = await thread.send(txt).catch(() => {
-        interaction.editReply({
-          content: "⚠ Failed to send message in thread."
+        `**Prompt:** ${interaction.options.get("prompt")!.value as string}\n\n`,
+      msg = await thread
+        .send(txt + `**Response:** Thinking <a:loading:781902642267029574>`)
+        .catch(() => {
+          interaction.editReply({
+            content: "⚠ Failed to send message in thread."
+          });
+          return undefined;
         });
-        return undefined;
-      });
     if (!msg) return;
     const temp = setInterval(() => {
         if (partial) {
-          msg.edit(txt + "\n\n**Response:** " + partial.text).catch();
+          msg.edit(txt + "**Response:** " + partial.text).catch();
           partial = undefined;
         }
       }, 1500),

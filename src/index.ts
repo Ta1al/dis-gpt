@@ -84,7 +84,7 @@ client.on(Events.MessageCreate, async message => {
 
   let partial: ChatMessage | undefined = undefined;
 
-  const msg = await message.channel.send("Thinking...");
+  const msg = await message.channel.send("Thinking <a:loading:781902642267029574>");
   const temp = setInterval(() => {
     if (partial) {
       msg.edit(partial.text).catch();
