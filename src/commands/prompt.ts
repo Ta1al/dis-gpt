@@ -4,6 +4,7 @@ import {
   ComponentType,
   MessageEditOptions,
   SlashCommandBuilder,
+  ThreadAutoArchiveDuration,
   TextChannel
 } from "discord.js";
 import { ChatGPTUnofficialProxyAPI, ChatMessage } from "chatgpt";
@@ -34,7 +35,8 @@ export default {
     const channel = interaction.channel as TextChannel,
       thread = await channel.threads
         .create({
-          name: interaction.user.id
+          name: interaction.user.id,
+          autoArchiveDuration: ThreadAutoArchiveDuration.OneHour
         })
         .catch(() => {
           interaction.editReply({
