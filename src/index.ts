@@ -85,6 +85,7 @@ client.on(Events.InteractionCreate, async interaction => {
     }
   } else if (interaction.isButton()) {
     if (interaction.customId === "abort") {
+      if (interaction.user.id !== (await threads.get(interaction.channelId)).userId) return;
       controller.abort();
       await interaction.update({
         content: "Aborting...",
