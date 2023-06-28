@@ -29,7 +29,7 @@ export default {
       });
     }
 
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply();
     const channel = interaction.channel as TextChannel,
       thread = await channel.threads
         .create({
