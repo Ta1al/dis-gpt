@@ -1,11 +1,13 @@
 import {
+  ButtonStyle,
   CommandInteraction,
+  ComponentType,
   MessageEditOptions,
   SlashCommandBuilder,
   TextChannel
 } from "discord.js";
 import { ChatGPTUnofficialProxyAPI, ChatMessage } from "chatgpt";
-import { threads } from "../index.js";
+import { threads, signal } from "../index.js";
 
 const api = new ChatGPTUnofficialProxyAPI({
   accessToken: process.env.OPENAI_ACCESS_TOKEN!,
@@ -47,7 +49,22 @@ export default {
         `${interaction.user.toString()}\n` +
         `**Prompt:** ${interaction.options.get("prompt")!.value as string}\n\n`,
       msg = await thread
-        .send(txt + `**Response:** Thinking <a:loading:781902642267029574>`)
+        .send({
+          content: txt + `**Response:** Thinking <a:loading:781902642267029574>`,
+          components: [
+            {
+              type: ComponentType.ActionRow,
+              components: [
+                {
+                  type: ComponentType.Button,
+                  style: ButtonStyle.Danger,
+                  label: "Abort",
+                  customId: "abort"
+                }
+              ]
+            }
+          ]
+        })
         .catch(() => {
           interaction.editReply({
             content: "❌ Failed to send message in thread."
@@ -72,13 +89,15 @@ export default {
           onProgress: progress => {
             partial = progress;
           },
+          abortSignal: signal,
           timeoutMs: 5 * 60 * 1000
         })
         .catch(e => {
           console.error(e);
           thread.delete().catch();
           interaction.editReply({
-            content: "💔 Failed to get response.\n" + e.message
+            content: "💔 Failed to get response.\n" + e.message,
+            components: []
           });
           return undefined;
         });
@@ -87,12 +106,14 @@ export default {
     if (!res || !res.text) return;
     threads.set(thread.id, { userId: interaction.user.id, res });
 
-    await msg.edit(msgContent(txt + "\n\n**Response:** " + res.text)).catch();
+    await msg
+      .edit({ ...msgContent(txt + "\n\n**Response:** " + res.text), components: [] })
+      .catch();
   }
 };
 
-function msgContent(txt: string): string | MessageEditOptions {
-  if (txt.length < 2000) return txt;
+function msgContent(txt: string): MessageEditOptions {
+  if (txt.length < 2000) return { content: txt };
   if (txt.length < 4000)
     return {
       content: "",

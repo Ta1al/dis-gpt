@@ -5,7 +5,9 @@ import {
   GatewayIntentBits,
   Collection,
   CommandInteraction,
-  SlashCommandBuilder
+  SlashCommandBuilder,
+  ComponentType,
+  ButtonStyle
 } from "discord.js";
 import { fileURLToPath } from "url";
 import { ChatMessage } from "chatgpt";
@@ -16,6 +18,9 @@ import Keyv from "keyv";
 
 const threads = new Keyv(process.env.MONGO_URI!);
 threads.on("error", (err: any) => console.error("Keyv connection error:", err));
+
+const controller = new AbortController();
+const signal = controller.signal;
 
 const client = new Client({
     intents: [
@@ -53,26 +58,34 @@ client.once(Events.ClientReady, client => {
 });
 
 client.on(Events.InteractionCreate, async interaction => {
-  if (!interaction.isChatInputCommand()) return;
+  if (interaction.isChatInputCommand()) {
+    const command = commands.get(interaction.commandName);
 
-  const command = commands.get(interaction.commandName);
+    if (!command) {
+      console.error(`No command matching ${interaction.commandName} was found.`);
+      return;
+    }
 
-  if (!command) {
-    console.error(`No command matching ${interaction.commandName} was found.`);
-    return;
-  }
-
-  try {
-    await command.run(interaction, threads);
-  } catch (error) {
-    console.error(error);
-    const errorMsg = {
-      content: "There was an error while executing this command!",
-      ephemeral: true
-    };
-    if (interaction.replied || interaction.deferred) await interaction.followUp(errorMsg);
-    else await interaction.reply(errorMsg);
-  }
+    try {
+      await command.run(interaction, threads);
+    } catch (error) {
+      console.error(error);
+      const errorMsg = {
+        content: "There was an error while executing this command!",
+        ephemeral: true
+      };
+      if (interaction.replied || interaction.deferred) await interaction.followUp(errorMsg);
+      else await interaction.reply(errorMsg);
+    }
+  } else if (interaction.isButton()) {
+    if (interaction.customId === "abort") {
+      controller.abort();
+      await interaction.update({
+        content: "Aborting...",
+        components: []
+      });
+    }
+  } else return;
 });
 
 client.on(Events.MessageCreate, async message => {
@@ -84,7 +97,24 @@ client.on(Events.MessageCreate, async message => {
   message.content = message.content.replace(client.user!.toString(), "").trim();
   let partial: ChatMessage | undefined = undefined;
 
-  const msg = await message.reply("<a:loading:781902642267029574>").catch();
+  const msg = await message
+    .reply({
+      content: "<a:loading:781902642267029574>",
+      components: [
+        {
+          type: ComponentType.ActionRow,
+          components: [
+            {
+              type: ComponentType.Button,
+              style: ButtonStyle.Danger,
+              label: "Abort",
+              customId: "abort"
+            }
+          ]
+        }
+      ]
+    })
+    .catch();
   if (!msg) return;
 
   const temp = setInterval(() => {
@@ -101,18 +131,19 @@ client.on(Events.MessageCreate, async message => {
       },
       parentMessageId: prevRes.parentMessageId,
       conversationId: prevRes.conversationId,
-      timeoutMs: 5 * 60 * 1000
+      timeoutMs: 5 * 60 * 1000,
+      abortSignal: signal
     })
     .catch(e => {
       console.error(e);
-      msg.edit("💔 Failed to get response.\n" + e.message).catch();
+      msg.edit({ content: "💔 Failed to get response.\n" + e.message, components: [] }).catch();
       return undefined;
     });
   clearInterval(temp);
 
   if (!res || !res.text) return;
   threads.set(msg.channel.id, { userId: message.author.id, res });
-  await msg.edit(msgContent(res.text)).catch();
+  await msg.edit({ ...msgContent(res.text), components: [] }).catch();
 });
 
 client.login(process.env.TOKEN);
@@ -125,5 +156,5 @@ interface MyCommand {
   ) => Promise<void>;
 }
 
-export { client, commands, threads };
+export { client, commands, threads, signal };
 
