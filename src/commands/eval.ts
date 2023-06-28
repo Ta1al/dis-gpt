@@ -1,9 +1,12 @@
 import { CommandInteraction, SlashCommandBuilder } from "discord.js";
+import Keyv from "keyv";
 import util from "util";
 export default {
   data: new SlashCommandBuilder()
     .setName("eval")
     .setDescription("Evaluate a JavaScript expression.")
+    .setDefaultMemberPermissions(0)
+    .setDMPermission(false)
     .addStringOption(option =>
       option.setName("expression").setDescription("The expression to evaluate.").setRequired(true)
     )
@@ -15,7 +18,7 @@ export default {
         .setName("ephemeral")
         .setDescription("Whether to send the result as an ephemeral message.")
     ),
-  run: async (interaction: CommandInteraction) => {
+  run: async (interaction: CommandInteraction, _threads: Keyv<any, Record<string, unknown>>) => {
     const expression = interaction.options.get("expression", true).value as string,
       depth = (interaction.options.get("depth", false)?.value as number) ?? 1,
       ephemeral = (interaction.options.get("ephemeral", false)?.value as boolean) ?? false;
