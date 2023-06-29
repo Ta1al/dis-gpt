@@ -85,12 +85,12 @@ client.on(Events.InteractionCreate, async interaction => {
     }
   } else if (interaction.isButton()) {
     if (interaction.customId === "abort") {
-      if (interaction.user.id !== (await threads.get(interaction.channelId))?.userId) return;
+      // maybe check if the user is the one who started the thread
       await interaction.update({
         content: "Aborting...",
         components: []
       });
-      event.emit(`abort-${interaction.channel?.id}`);
+      event.emit(`abort-${interaction.channel?.id}-${interaction.message.id}`);
     }
   } else return;
 });
@@ -99,8 +99,8 @@ client.on(Events.MessageCreate, async message => {
   if (message.author.bot) return;
   if (!message.channel.isThread() || message.channel.parentId !== process.env.CHANNEL_ID!) return;
   if (!message.mentions.has(client.user!)) return;
-  const { userId, res: prevRes } = await threads.get(message.channelId);
-  if (!prevRes || message.author.id !== userId) return;
+  const prevRes = await threads.get(message.channelId);
+  if (!prevRes) return;
   let partial: ChatMessage | undefined = undefined;
 
   const msg = await message
@@ -131,7 +131,7 @@ client.on(Events.MessageCreate, async message => {
   }, 1500);
   const controller = new AbortController();
   const signal = controller.signal;
-  event.once(`abort-${msg.channel.id}`, () => {
+  event.once(`abort-${msg.channel.id}-${msg.id}`, () => {
     controller.abort();
   });
   const res = await api
@@ -152,7 +152,7 @@ client.on(Events.MessageCreate, async message => {
   clearInterval(temp);
 
   if (!res || !res.text) return;
-  threads.set(msg.channel.id, { userId: message.author.id, res });
+  threads.set(msg.channel.id, res);
   await msg.edit({ ...msgContent(res.text), components: [] }).catch();
 });
 

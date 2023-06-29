@@ -46,7 +46,6 @@ export default {
         });
     if (!thread) return;
     thread.members.add(interaction.user.id).catch();
-    threads.set(thread.id, { userId: interaction.user.id, res: undefined });
     await interaction.editReply({
       content: `✅ Check out the thread: ${thread.toString()}`
     });
@@ -82,7 +81,7 @@ export default {
 
     const controller = new AbortController();
     const signal = controller.signal;
-    event.once(`abort-${thread.id}`, () => {
+    event.once(`abort-${thread.id}-${msg.id}`, () => {
       controller.abort();
     });
     const temp = setInterval(() => {
@@ -116,7 +115,7 @@ export default {
     clearInterval(temp);
 
     if (!res || !res.text) return;
-    threads.set(thread.id, { userId: interaction.user.id, res });
+    threads.set(thread.id, res);
 
     await msg
       .edit({ ...msgContent(txt + "\n\n**Response:** " + res.text), components: [] })
