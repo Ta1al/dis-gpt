@@ -12,11 +12,11 @@ import {
 import { fileURLToPath } from "url";
 import { ChatMessage } from "chatgpt";
 import path, { dirname } from "path";
-import prompt, { api, msgContent } from "./commands/conversation.js";
+import conversation, { api, msgContent } from "./commands/conversation.js";
+import prompt from "./commands/prompt.js";
 import fs from "fs";
 import Keyv from "keyv";
 import EventEmitter from "events";
-
 const event = new EventEmitter();
 
 const threads = new Keyv(process.env.MONGO_URI!);
@@ -41,7 +41,9 @@ const client = new Client({
   commandsPath = path.join(__dirname, "commands"),
   commandFiles = fs
     .readdirSync(commandsPath)
-    .filter(file => file.endsWith(".js") && !file.startsWith("prompt"));
+    .filter(
+      file => file.endsWith(".js") && !file.startsWith("conversation") && !file.startsWith("prompt")
+    );
 
 for (const file of commandFiles) {
   const filePath = path.join(commandsPath, file),
@@ -54,6 +56,7 @@ for (const file of commandFiles) {
     );
   }
 }
+commands.set(conversation.data.name, conversation as MyCommand);
 commands.set(prompt.data.name, prompt as MyCommand);
 
 client.once(Events.ClientReady, client => {
