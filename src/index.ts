@@ -90,7 +90,7 @@ client.on(Events.InteractionCreate, async interaction => {
         content: "Aborting...",
         components: []
       });
-      event.emit(`abort-${interaction.channel?.id}-${interaction.message.id}`);
+      event.emit(`abort-${interaction.channel?.id}-${interaction.message.interaction!.id}`);
     }
   } else return;
 });
