@@ -12,7 +12,7 @@ import {
 import { fileURLToPath } from "url";
 import { ChatMessage } from "chatgpt";
 import path, { dirname } from "path";
-import prompt, { api, msgContent } from "./commands/prompt.js";
+import prompt, { api, msgContent } from "./commands/conversation.js";
 import fs from "fs";
 import Keyv from "keyv";
 import EventEmitter from "events";
