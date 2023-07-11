@@ -18,8 +18,8 @@ const api = new ChatGPTUnofficialProxyAPI({
 
 export default {
   data: new SlashCommandBuilder()
-    .setName("prompt")
-    .setDescription("Prompt chatgpt")
+    .setName("conversation")
+    .setDescription("Start a conversation with ChatGPT.")
     .addStringOption(option => option.setName("prompt").setDescription("Prompt").setRequired(true)),
   run: async (interaction: CommandInteraction) => {
     let partial: ChatMessage | undefined = undefined;
